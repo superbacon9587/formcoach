@@ -1,5 +1,9 @@
 # Person B — pushup measurements, reps, assessment and testing
 
+> Front-view work update: the user has chosen front view and deferred cycle counting.
+> The original side-view instructions below remain for context; their hip/depth rules
+> are not enabled in the front-view implementation. See the handoff at the end.
+
 **Your goal:** pure TypeScript logic that turns PoseFrames into an honest
 SessionView. You can complete most of this before the camera exists. Work only in
 analysis/tests; do not fix tracking/UI by editing teammates' folders.
@@ -175,3 +179,108 @@ Record small honest results: count error per set; alignment TP/FP/FN if labeled;
 tracking coverage and supported camera view. Do not invent "95% accuracy".
 Replay can be added only if time allows; manual live tests are acceptable today.
 Final two hours: stabilize, communicate limits, help A verify integrated behavior.
+
+## Front-view handoff: measurement and comparison engine
+
+### Built on B's branch
+`src/analysis/front-view.ts` exports `createFrontViewAnalyzer(reference?)` and
+`fitReference(reference, frame)`. This is a separately testable B module, not a
+private replacement of the frozen v1 contract. The existing `createAnalyzer()`
+and its one-arm measurement display keep working unchanged.
+
+The new engine measures both projected elbow angles and arm segment lengths,
+fits a supplied bottom target to the user's planted hands, estimates movement
+stage and compares each arm with the reference at that stage. It returns
+reference-match decisions and short cues, not a claim of correct overall form.
+Cycle counting, hip alignment and clinical/3D depth judgments are not included.
+
+### Input and reference needed for integration
+- A's future agreed adapter must supply `FrontFrame`: timestampMs, intrinsic
+  width/height, source and `arms.left` / `arms.right`, each with shoulder, elbow
+  and wrist Points. It reuses shared Point/Side types. Missing joints are absent;
+  confidence below 0.6 is unmeasurable. Source coordinates must stay unmirrored;
+  left/right identify the person's anatomical sides.
+- On lost tracking, supply empty arms with fresh timestamps. Reset on a new
+  source session, a camera/view change or a left/right identity swap. The engine
+  detects dimension/source changes and gaps over 250 ms itself, but it cannot
+  detect all same-size camera movements or silent identity swaps.
+- Supply `FrontReference = { id, top, bottom }`, containing complete both-arm
+  joint samples from a reviewed real pushup at the supported fixed front angle.
+  This commit supplies no real reference. Test coordinates are synthetic geometry
+  fixtures only; neither those nor the illustrated animation are training truth.
+- Hand contacts in top/bottom must remain within 2% of reference wrist spacing;
+  each shoulder must move at least 5% of that spacing. These are geometry gates,
+  not validations of good technique.
+
+### Lifecycle
+```ts
+import { createFrontViewAnalyzer } from '../analysis/front-view';
+const front = createFrontViewAnalyzer(reviewedReference);
+const setup = front.calibrate(currentTopFrame);
+// Do not start live comparison unless setup.calibrated is true.
+const live = front.update(nextFrame);
+const stopped = front.finish(); // repeatable; later updates freeze until reset
+front.reset(); // clears calibration, decisions, timers and displayed targets
+```
+
+Call calibration deliberately while the user holds the reference top position.
+Both arms must be visible and within the outer reference tolerance after fitting.
+Calibration resets the session. Retrying calibration after failure is allowed.
+New references require a new engine instance. Without a reference/calibration,
+raw angle/length measurements are available but comparisons stay unknown.
+
+### What C can render after the shared integration update
+| Output | Meaning / display |
+|---|---|
+| `arms.left/right.elbowDeg` | Projected angle or null; optional measurement panel |
+| `upperArmPx`, `forearmPx` | Projected shoulder-elbow and elbow-wrist lengths, not physical body dimensions |
+| `phase` | ready/down/bottom/up/paused; ready denotes top, not a counted rep |
+| `progress` | 0..1 projection along the reference shoulder movement, not a quality percentage |
+| `bottomTarget` | Stable fitted destination for dashed blue lines; null without calibration |
+| `expectedPose` | Intermediate reference at current progress, not the final destination |
+| `tolerancePx` | Outer comparison tolerance for the target visualization |
+| `arms.*.bottomDistance` | Maximum joint-to-bottom-target distance divided by calibration wrist spacing |
+| `arms.*.referenceError` | Maximum joint-to-current-stage-reference distance divided by wrist spacing |
+| `arms.*.referenceMatch` | Unknown/pass/fail for that arm's reference comparison |
+| `referenceMatch` | Aggregate: any confirmed fail wins; pass requires both arms passing |
+| `corrections` | Anatomical side, affected upperArm/forearm segment, and cue; color those segments red |
+| `bottomReached` | Sustained arrival near the supplied bottom reference; usable for a confirmation tone |
+| `cue` | One current instruction; display directly |
+| `elapsedMs`, `assessableMs` | Active sampled time and intervals with assessable complete comparisons |
+
+Render current joints from the input frame. Keep unknown neutral; only show green
+for a supported reference pass. Red corrections are selected by B, not inferred
+again by C. Do not show a whole-body good-form score. Video, current joints and
+targets must share exactly the same fit/mirror transformation.
+Play a target-confirmation tone only when bottomReached changes from false to
+true, not on every frame during a bottom hold.
+
+### Provisional behavior and limits
+`front-view-rules.ts` holds the engineering tolerances. Joint error is normalized
+by fixed calibration wrist spacing: below 0.05 supports pass after 200 ms; above
+0.08 supports fail after 200 ms. Recovery from fail needs 300 ms below 0.05.
+The middle band keeps the previous supported status. Invalid data clears evidence
+and makes all live comparisons unknown immediately. Loss lasting 250 ms, source
+changes, dimension changes or frame gaps over 250 ms remove calibration/targets.
+Duplicate/backward/nonfinite timestamps pause comparisons without adding time.
+
+Direction requires 120 ms of movement and at least 0.03 progress excursion.
+Top/bottom endpoint holds require 200 ms. Bottom also needs progress >=0.9 and all
+joints within the inner band; top is progress <=0.1. Slow holds do not time out.
+Only adjacent fully valid comparisons contribute assessable time; large gaps are
+excluded entirely. Measurement and evidence are time-based, not frame-count based.
+
+Reference fitting handles uniform 2D scale, rotation and translation via the hand
+baseline. It does not solve camera perspective, individual limb proportions or
+occlusion. Intermediate poses linearly interpolate two reviewed endpoints; this
+is a provisional movement template that needs recordings to validate or replace
+with more sampled phases. Shoulder-derived progress can be distorted by shoulder
+tracking errors. Passing means matching that template, not proven safe technique.
+
+### Merge boundary
+Merging B alone does not activate the new engine in the app. A must apply the
+agreed both-arm/shared-output changes and connect the source, engine and C's
+renderer in a separate integration change. Preserve this module's unknown states
+and stable targets. Existing v1 counts stay zero until counting is assigned/built.
+No camera, UI, packages, shared types or integration files were changed in this
+front-view groundwork milestone.
