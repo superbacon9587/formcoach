@@ -1,5 +1,6 @@
 import type { CoachUI } from '../shared/contracts';
 import { drawOverlay } from './overlay';
+import { createMeasurementsPanel } from './measurements';
 import './styles.css';
 export function mountUI(root: HTMLElement): CoachUI {
   root.innerHTML=`<main><header><span class="eyebrow">HACKATHON STARTER · CONTRACT v1</span><h1>FormCoach <small>pushups</small></h1><p>Side-view movement feedback. Start with a mock preview while the team builds.</p></header>
@@ -10,12 +11,15 @@ export function mountUI(root: HTMLElement): CoachUI {
   <footer>Starter status: UI and mock wiring work. A implements camera tracking; B implements assessment; C improves the experience. Unknown never means good form.</footer></main>`;
   const q=<T extends HTMLElement>(selector:string)=>root.querySelector<T>(selector)!;
   const video=q<HTMLVideoElement>('video'),canvas=q<HTMLCanvasElement>('canvas');
+  const measurements=createMeasurementsPanel();
+  q('.stage').after(measurements.element);
   let actions:Parameters<CoachUI['bind']>[0]|null=null;
   q('#mock').onclick=()=>void actions?.start('mock');q('#camera').onclick=()=>void actions?.start('camera');
   q('#stop').onclick=()=>actions?.stop();q('#reset').onclick=()=>actions?.reset();
   return {
     video,bind(a){actions=a;},
     render(frame,view){
+      measurements.render(frame,view);
       q('#source').textContent=frame?`${frame.source.toUpperCase()} INPUT`:'NO INPUT';
       q('#count').textContent=String(view.completed);q('#alignment').textContent=view.checks.alignment;
       q('#phase').textContent=view.phase;q('#cue').textContent=view.cue??'Only enabled, assessable checks may pass.';
