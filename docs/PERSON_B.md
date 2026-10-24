@@ -1,8 +1,9 @@
 # Person B — pushup measurements, reps, assessment and testing
 
-> Front-view work update: the user has chosen front view and deferred cycle counting.
-> The original side-view instructions below remain for context; their hip/depth rules
-> are not enabled in the front-view implementation. See the handoff at the end.
+> Current implementation: the user requested a follow-up audit and completion of
+> the original B spec, including rep counting. The active v1 app now implements
+> the side-view analyzer below. The separate front-view reference engine remains
+> available but is not wired to v1. Side-view rules are not applied to that engine.
 
 **Your goal:** pure TypeScript logic that turns PoseFrames into an honest
 SessionView. You can complete most of this before the camera exists. Work only in
@@ -192,7 +193,9 @@ The new engine measures both projected elbow angles and arm segment lengths,
 fits a supplied bottom target to the user's planted hands, estimates movement
 stage and compares each arm with the reference at that stage. It returns
 reference-match decisions and short cues, not a claim of correct overall form.
-Cycle counting, hip alignment and clinical/3D depth judgments are not included.
+Cycle counting and hip alignment are not included in this separate front-view
+engine; the active v1 side-view analyzer implements them independently. Neither
+engine supplies clinical or true 3D depth judgments.
 
 ### Input and reference needed for integration
 - A's future agreed adapter must supply `FrontFrame`: timestampMs, intrinsic
@@ -281,6 +284,76 @@ tracking errors. Passing means matching that template, not proven safe technique
 Merging B alone does not activate the new engine in the app. A must apply the
 agreed both-arm/shared-output changes and connect the source, engine and C's
 renderer in a separate integration change. Preserve this module's unknown states
-and stable targets. Existing v1 counts stay zero until counting is assigned/built.
+and stable targets. The active v1 analyzer now counts side-view cycles; that does
+not activate front-view coaching or supply a front-view reference.
 No camera, UI, packages, shared types or integration files were changed in this
 front-view groundwork milestone.
+
+## Follow-up audit: active side-view analyzer completed
+
+### Implemented in the existing app pipeline
+`createAnalyzer(): Analyzer` now supplies live phase, raw elbow angle, normalized
+hip deviation, live alignment status/cues, completed/incomplete/unassessed counts,
+per-attempt range/alignment results, elapsed time and assessable time. C's existing
+live and summary screens render those fields without an API change. All three
+checks are enabled because the alignment and optional range checks now have
+implementations and behavior tests. The front-view engine is unchanged.
+
+### State and range rules
+`src/analysis/rules.ts` owns provisional settings. Initial top requires a visible,
+near-horizontal shoulder-to-ankle body line (slope <=1) with the wrist below the
+shoulder, and raw elbow >=160 degrees for 200 ms. This is an approximate setup
+gate to reject standing arm motion, not a guarantee of camera orientation.
+Missing hip alone does not prevent counting once the setup is established, but
+it makes alignment unknown. Missing shoulder/ankle prevents initial setup.
+
+Valid angle samples use a time-aware exponential filter with a 40 ms time constant
+for movement decisions and rep extrema; live elbowDeg remains the raw angle.
+Descent requires raw angle below145, at least15 degrees excursion and 80 ms of
+evidence to reject a one-frame outlier. Rising requires a3-degree reversal held
+for120 ms. No arbitrary slow-rep or bottom-hold timeout exists. A stable top ends
+one cycle; a15-degree renewed descent below145 for120 ms can close one incomplete
+attempt before starting another. Setup motion and top jitter are not reps.
+
+Depth is assessed only after a confirmed reversal or at attempt end, never while
+still descending. Its provisional target is minimum filtered elbow <=90 degrees,
+with a1-degree settling tolerance. Ending extension is assessed only at attempt
+end using filtered samples from the confirmed UP phase, with target >=160 minus
+the same1-degree tolerance. The initial top cannot satisfy ending extension.
+Depth is a side-view angle proxy, not chest-to-floor distance; these candidate
+targets still need real-person tuning.
+
+### Alignment and uncertainty
+Deviation >0.05 for200 ms establishes fail; below0.035 establishes initial pass
+after200 ms or recovers from fail after300 ms. Invalid required joints reset live
+evidence immediately. A sustained failure actually observed during an attempt is
+sticky in that attempt's result even after live recovery. A fault confined to
+setup is not copied into an otherwise corrected rep.
+
+A rep alignment pass needs at least200 ms of valid alignment intervals, at least
+80% coverage of its duration, observed pass evidence and no supported failure.
+Otherwise alignment is unknown. Sag/pike cues use vertical residual from the
+shoulder-to-ankle line, retaining meaning for either facing direction.
+
+Any blind arm interval marks the active attempt unassessed, even if tracking
+quickly resumes. Loss lasting250 ms closes it once and requires a fresh top.
+Side/dimension/source changes and frame gaps >250 ms also close as unassessed
+and reset movement/filter/check history. Invalid or duplicate/backward timestamps
+pause without adding time or fault evidence. Unknown is never silently a pass.
+
+### Session lifecycle and verification
+Stop logs an active tracked attempt as incomplete; a tracking-obscured attempt is
+unassessed. Stop after a long blind gap is also unassessed. Repeated finish calls
+are identical and later updates stay frozen until reset. Exception: the existing
+main shell calls finish(0) immediately after reset to render empty state; this
+pre-input read returns zeros without disabling the next run. Reset clears all
+records, smoothing, evidence, state and times. Returned snapshots are independent.
+
+Elapsed time starts at the first real timestamp, not zero. Only adjacent valid
+geometry samples contribute assessable time; huge gaps are excluded entirely.
+Completed counts and all summaries derive from recorded outcomes.
+
+Automated geometry/state tests and browser mock integration are available. Human
+evaluation (two teammates for tuning, a third held out), real-camera count error,
+false alarms and tracking coverage remain to be recorded by the team. No real
+accuracy percentage or completed human evaluation is claimed.
