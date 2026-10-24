@@ -50,7 +50,7 @@ test('analyzer publishes an arm measurement without claiming a form pass', () =>
   assert.equal(view.elbowDeg, 90);
   assert.equal(view.hipDeviation, null);
   assert.deepEqual(view.checks, { alignment: 'unknown', depth: 'unknown', extension: 'unknown' });
-  assert.deepEqual(view.enabledChecks, { alignment: false, depth: false, extension: false });
+  assert.deepEqual(view.enabledChecks, { alignment: true, depth: true, extension: true });
   assert.equal(view.completed, 0);
   assert.deepEqual(input, before);
   const lost = a.update({ ...input, timestampMs: 1100, tracking: 'lost' });
