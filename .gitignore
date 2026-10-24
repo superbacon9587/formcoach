@@ -1,0 +1,11 @@
+node_modules/
+dist/
+.env
+.env.*
+!.env.example
+.DS_Store
+public/models/*.task
+public/wasm/*
+!public/wasm/.gitkeep
+recordings/
+*.log

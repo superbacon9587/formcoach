@@ -1,0 +1,38 @@
+name: checks
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run check
+  ownership:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Flag edits outside the branch owner's lane
+        env:
+          HEAD_BRANCH: ${{ github.head_ref }}
+          BASE_BRANCH: ${{ github.base_ref }}
+        run: |
+          case "$HEAD_BRANCH" in
+            feature/a-*) role=A ;;
+            feature/b-*) role=B ;;
+            feature/c-*) role=C ;;
+            *) echo 'Use feature/a-, feature/b-, or feature/c- branch prefixes.'; exit 1 ;;
+          esac
+          node scripts/check-ownership.mjs "$role" "origin/$BASE_BRANCH"
