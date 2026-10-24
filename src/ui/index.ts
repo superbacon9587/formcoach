@@ -7,6 +7,7 @@ import {
   type CheckKey,
 } from './labels';
 import { drawOverlay } from './overlay';
+import { createMeasurementsPanel } from './measurements';
 import './styles.css';
 
 type ViewName = 'setup' | 'live' | 'summary';
@@ -92,6 +93,8 @@ export function mountUI(root: HTMLElement): CoachUI {
   };
   const video = q<HTMLVideoElement>('video');
   const canvas = q<HTMLCanvasElement>('.stage canvas');
+  const measurements = createMeasurementsPanel();
+  q('#view-live').append(measurements.element);
   const views: Record<ViewName, HTMLElement> = {
     setup: q('#view-setup'), live: q('#view-live'), summary: q('#view-summary'),
   };
@@ -153,6 +156,7 @@ export function mountUI(root: HTMLElement): CoachUI {
   }
 
   function renderLive(frame: PoseFrame | null, view: SessionView) {
+    measurements.render(frame, view);
     q('#source').textContent = sourceLabel(frame);
     q('#source').dataset.source = frame?.source ?? 'none';
     const track = trackingLabel(frame);

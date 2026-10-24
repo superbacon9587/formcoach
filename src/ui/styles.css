@@ -120,3 +120,21 @@ footer { font-size: 12px; color: var(--muted); margin-top: 36px; border-top: 1px
   .totals { grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
   .totals strong { font-size: 26px; }
 }
+
+/* Person B measurement panel */
+:root{--measurement-muted:#9db0c6;--measurement-border:#344459}
+.measurements{margin-top:16px;padding:22px;border:1px solid var(--measurement-border);border-radius:14px;background:#142132}
+.measurements-heading{display:flex;align-items:center;justify-content:space-between;gap:16px}
+.measurements-label{font-size:10px;letter-spacing:.12em;color:var(--measurement-muted)}
+.measurements h2{margin:6px 0 0;font-size:22px}
+.measurement-source{padding:7px 10px;border:1px solid var(--measurement-border);border-radius:6px;font-size:10px;letter-spacing:.06em;color:#b4c1d2}
+.measurements-grid{display:grid;grid-template-columns:1fr 1.4fr;gap:24px;margin-top:24px}
+.measurement-caption,.measurement-side{display:block;color:var(--measurement-muted);font-size:12px}
+.measurement-angle{display:block;font-size:60px;line-height:1.2;font-weight:600;font-variant-numeric:tabular-nums;letter-spacing:-.04em;margin:5px 0}
+.measurement-detail{border-left:1px solid var(--measurement-border);padding-left:24px}
+.measurement-status{display:block;font-size:22px;margin-top:12px}
+.measurement-help{max-width:360px;font-size:13px;margin:8px 0 0}
+.measurement-note{font-size:12px;margin:20px 0 0;padding-top:14px;border-top:1px solid var(--measurement-border)}
+@media(max-width:540px){.measurements{padding:18px}.measurements-heading{align-items:flex-start;flex-direction:column}.measurements-grid{grid-template-columns:1fr;gap:18px}.measurement-detail{border-left:0;border-top:1px solid var(--measurement-border);padding:16px 0 0}.measurement-angle{font-size:52px}}
+
+.live > .measurements { grid-column: 1 / -1; margin-top: 0; }
