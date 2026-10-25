@@ -42,15 +42,15 @@ test('distance uses source pixels and permits coincident points', () => {
   assert.equal(distancePx(point(10, 20), point(10, 20)), 0);
 });
 
-test('analyzer publishes an arm measurement without claiming a form pass', () => {
-  const a = createAnalyzer();
+test('single-arm image measurement remains available in side mode before setup passes', () => {
+  const a = createAnalyzer({cameraView:'side',angleSpace:'image'});
   const input = frame();
   const before = structuredClone(input);
   const view = a.update(input);
   assert.equal(view.elbowDeg, 90);
   assert.equal(view.hipDeviation, null);
   assert.deepEqual(view.checks, { alignment: 'unknown', depth: 'unknown', extension: 'unknown' });
-  assert.deepEqual(view.enabledChecks, { alignment: false, depth: false, extension: false });
+  assert.deepEqual(view.enabledChecks, { alignment: true, depth: true, extension: true });
   assert.equal(view.completed, 0);
   assert.deepEqual(input, before);
   const lost = a.update({ ...input, timestampMs: 1100, tracking: 'lost' });
@@ -63,7 +63,7 @@ test('analyzer publishes an arm measurement without claiming a form pass', () =>
 });
 
 test('analyzer does not reuse stale arm measurements', () => {
-  const a = createAnalyzer();
+  const a = createAnalyzer({cameraView:'side',angleSpace:'image'});
   a.update(frame());
   const invalid = frame();
   invalid.joints.wrist = point(100, 200, 0.1);

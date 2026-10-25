@@ -1,6 +1,8 @@
 import { FilesetResolver, PoseLandmarker } from '@mediapipe/tasks-vision';
 import type { PoseFrame, SourceOptions, StopSource } from '../shared/contracts';
 import { createSideSelector } from './landmarks';
+import { createFrameSmoother } from './smoothing';
+import { bilateralFrame } from './bilateral';
 
 /** A bounded wait also disposes resources that arrive after a startup timeout. */
 async function bounded<T>(pending: Promise<T>, label: string, dispose?: (value: T) => void): Promise<T> {
@@ -18,6 +20,7 @@ async function bounded<T>(pending: Promise<T>, label: string, dispose?: (value: 
 
 export async function startCameraSource(options: SourceOptions): Promise<StopSource> {
   const { video, onFrame, onStatus } = options;
+  const cameraView = options.cameraView ?? 'front';
   let stream: MediaStream | undefined;
   let pose: PoseLandmarker | undefined;
   let stopped = false;
@@ -29,6 +32,7 @@ export async function startCameraSource(options: SourceOptions): Promise<StopSou
   let stale = false;
   let lastTracking: PoseFrame['tracking'] | undefined;
   const selector = createSideSelector();
+  const smoother = createFrameSmoother();
   const stop: StopSource = () => {
     if (stopped) return;
     stopped = true;
@@ -43,13 +47,13 @@ export async function startCameraSource(options: SourceOptions): Promise<StopSou
     pose = undefined;
   };
   const timestamp = () => (lastTimestamp = Math.max(performance.now(), lastTimestamp + 0.001));
-  const emit = (tracking: Pick<PoseFrame, 'joints' | 'side' | 'tracking'>, time = timestamp()) => {
-    onFrame({ timestampMs: time, width: video.videoWidth, height: video.videoHeight,
-      source: 'camera', ...tracking });
+  const emit = (tracking: Pick<PoseFrame, 'joints' | 'side' | 'tracking'> & Partial<Pick<PoseFrame,'arms'|'worldArms'>>, time = timestamp()) => {
+    onFrame(smoother.update({ timestampMs: time, width: video.videoWidth, height: video.videoHeight,
+      source: 'camera', cameraView, ...tracking }));
     if (tracking.tracking !== lastTracking) {
       lastTracking = tracking.tracking;
-      onStatus(tracking.tracking === 'lost' ? 'Pose lost. Keep your full body visible in side view.' :
-        `Live camera: ${tracking.side} side, ${tracking.tracking} tracking.`);
+      onStatus(tracking.tracking === 'lost' ? 'Pose lost. Show both shoulders, elbows and wrists; hips are not required in front mode.' :
+        `Live camera: ${cameraView} view, ${tracking.tracking} tracking.`);
     }
   };
   const lost = () => { selector.reset(); emit({ joints: {}, side: null, tracking: 'lost' }); };
@@ -77,7 +81,7 @@ export async function startCameraSource(options: SourceOptions): Promise<StopSou
       pose = await create('CPU');
     }
     lastFresh = performance.now();
-    onStatus('Camera ready. Keep your full body visible in side view.');
+    onStatus(cameraView === 'front' ? 'Camera ready. Face the camera on the floor; show both arms and hold the top position.' : 'Camera ready. Show your full body from the side.');
     const tick = () => {
       if (stopped) return;
       try {
@@ -87,7 +91,18 @@ export async function startCameraSource(options: SourceOptions): Promise<StopSou
           stale = false;
           const time = timestamp();
           const result = pose!.detectForVideo(video, time);
-          try { emit(selector.select(result.landmarks[0] ?? [], video.videoWidth, video.videoHeight), time); }
+          try {
+            const points = result.landmarks[0] ?? [];
+            const both = bilateralFrame(points, result.worldLandmarks[0] ?? [], video.videoWidth, video.videoHeight,cameraView==='front');
+            if(cameraView === 'front') {
+              const arms = both.arms!;
+              const armOK = (side:'left'|'right') => (['shoulder','elbow','wrist'] as const).every(k =>
+                (arms[side]?.[k]?.visibility??0)>=0.6);
+              const left = armOK('left'), right = armOK('right');
+              emit({arms:both.arms, joints:arms.left ?? {}, side:left?'left':right?'right':null,
+                tracking:left&&right?'valid':left||right?'partial':'lost'},time);
+            } else emit({...selector.select(points,video.videoWidth,video.videoHeight),...both},time);
+          }
           finally { result.close(); }
         }
         if (!stopped) raf = requestAnimationFrame(tick);

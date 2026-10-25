@@ -13,14 +13,14 @@ export type Tone = 'neutral' | 'pass' | 'fail';
 export const CHECK_KEYS: readonly CheckKey[] = ['alignment', 'depth', 'extension'];
 
 export const CHECK_NAMES: Record<CheckKey, string> = {
-  alignment: 'Body line',
-  depth: 'Depth',
+  alignment: 'Body alignment',
+  depth: 'Elbow depth',
   extension: 'Lockout',
 };
 
 export const CHECK_HELP: Record<CheckKey, string> = {
-  alignment: 'Shoulders, hips and ankles stay in one straight line (no sagging or piking).',
-  depth: 'Elbows bend far enough at the bottom of each rep.',
+  alignment: 'Keep your hip near the shoulder-to-ankle line.',
+  depth: 'Reach the configured elbow-angle depth target.',
   extension: 'Arms straighten at the top of each rep.',
 };
 
@@ -42,11 +42,11 @@ export function sourceLabel(frame: PoseFrame | null): string {
 /** Words for A's tracking state. Says nothing about form quality. */
 export function trackingLabel(frame: PoseFrame | null): { text: string; tone: Tone } {
   if (!frame) return { text: 'Waiting for pose…', tone: 'neutral' };
-  if (frame.tracking === 'valid') return { text: 'Body in view', tone: 'neutral' };
+  if (frame.tracking === 'valid') return { text: frame.cameraView==='front'?'Arms in view':'Body in view', tone: 'neutral' };
   if (frame.tracking === 'partial') {
-    return { text: 'Partly in view - show hands through ankles from the side', tone: 'neutral' };
+    return { text: 'Partly in view - show your side from shoulder to ankle', tone: 'neutral' };
   }
-  return { text: 'Pose lost - step back into frame, side view', tone: 'fail' };
+  return { text: 'Pose lost - bring the required joints back into frame', tone: 'fail' };
 }
 
 export const PHASE_NAMES: Record<Phase, string> = {
@@ -92,8 +92,8 @@ export function tallyCheck(reps: readonly RepResult[], key: CheckKey, enabled: b
 
 export const OUTCOME_NAMES: Record<RepResult['outcome'], string> = {
   completed: 'Completed',
-  incomplete: 'Incomplete',
-  unassessed: 'Not assessable',
+  incomplete: 'Partial / needs review',
+  unassessed: 'Tracking interrupted',
 };
 
 export function formatSeconds(ms: number): string {

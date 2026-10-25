@@ -1,3 +1,13 @@
+# Current mode: one-computer group integration
+
+The team explicitly requested combined edits across A/B/C to fix counting, add
+front-view tracking and guidance, and test locally before pushing. The earlier
+folder ownership freeze is suspended for this group branch. Do not push, merge,
+or publish until the group tests the result. Read docs/GROUP_TEST.md.
+Keep tracking, pure analysis and presentation separated. Do not fake live data.
+
+## Previous parallel-work instructions (historical)
+
 # Mandatory working agreement for every AI assistant
 
 This is a three-student, eight-hour, side-view pushup project. Read this file,

@@ -1,3 +1,26 @@
+# Current version: side-view workflow
+
+See [V4 side-view update](docs/SIDE_VIEW_UPDATE.md). This supersedes the front-view instructions below.
+
+# Current V3: fixed front guide and arms-only front mode
+
+Read [the V3 update guide](docs/FIXED_FRONT_ARMS.md). This supersedes the older front-mode3D/angle
+instructions below. Front mode now uses only six image arm joints, two stationary
+reference poses, and an explicit manual guide lock. Side mode remains available.
+
+# Current V2: effort tally and depth feedback
+
+See [DEPTH_TALLY_UPDATE](docs/DEPTH_TALLY_UPDATE.md). Partial and tracking-interrupted
+attempts are recorded; uncertain depth is not assigned a poor-form grade. Nothing
+in this local update publishes or pushes your code.
+
+# Current group testing update
+
+The team is now testing front-view pushups on ONE computer. Read
+[GROUP_TEST](docs/GROUP_TEST.md) for the patch, configuration and acceptance checklist.
+The live entry point now counts reps; the earlier separate front-reference module
+is retained for historical tests but is not the active application analyzer.
+
 # FormCoach · three-person pushup hackathon starter
 
 A Git-ready project with locked interfaces and three independent workstreams.

@@ -1,0 +1,27 @@
+import type { FrontGuide } from './front-guide';
+import type { Point, Side } from './contracts';
+export type CameraView = 'front' | 'side';
+export type AngleSpace = 'world' | 'image';
+export type ArmPose = Partial<Record<'shoulder' | 'elbow' | 'wrist' | 'hip' | 'knee' | 'ankle', Point>>;
+export type WorldPoint = Point & { z: number };
+export type WorldPose = Partial<Record<'shoulder' | 'elbow' | 'wrist' | 'hip' | 'knee' | 'ankle', WorldPoint>>;
+export type CoachSettings = { cameraView: CameraView; angleSpace: AngleSpace; bottomDeg: number; topDeg: number };
+export const DEFAULT_SETTINGS: CoachSettings = { cameraView:'side', angleSpace:'image', bottomDeg:90, topDeg:160 };
+export type CoachingFeedback = {
+  cameraView: CameraView; angleSpace: AngleSpace;
+  measurementMode?: 'arm-path' | 'angle';
+  fixedGuides?: FrontGuide; guideLocked?: boolean;
+  pathProgress?: {left:number|null;right:number|null};
+  leftElbowDeg: number | null; rightElbowDeg: number | null;
+  rawLeftElbowDeg?: number | null; rawRightElbowDeg?: number | null;
+  bottomDeg: number; topDeg: number; targetDeg: number;
+  preparation?: 'positioning' | 'countdown' | 'active';
+  countdownSeconds?: number;
+  armed: boolean; depthReached: boolean;
+  shoulderDrop?: number | null;
+  depthConfidence?: 'stable' | 'uncertain';
+  visualStatus: 'unknown' | 'pass' | 'fail';
+  armVisualStatus?: 'unknown' | 'pass' | 'fail';
+  armFaults?: {depth:boolean;extension:boolean};
+  guideArms: Partial<Record<Side, ArmPose>>;
+};
