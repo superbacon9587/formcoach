@@ -3,6 +3,17 @@ import type { Point } from '../shared/contracts';
 export const MIN_VISIBILITY = 0.6;
 type MaybePoint = Point | null | undefined;
 
+/** Perpendicular hip distance divided by shoulder-to-ankle length (side view). */
+export function hipDeviation(shoulder: MaybePoint, hip: MaybePoint, ankle: MaybePoint): number | null {
+  if (!isUsablePoint(shoulder) || !isUsablePoint(hip) || !isUsablePoint(ankle)) return null;
+  const dx = ankle.x - shoulder.x, dy = ankle.y - shoulder.y;
+  const length = Math.hypot(dx, dy);
+  if (!Number.isFinite(length) || length === 0) return null;
+  const offset = Math.abs((dx / length) * ((hip.y - shoulder.y) / length)
+    - (dy / length) * ((hip.x - shoulder.x) / length));
+  return Number.isFinite(offset) ? offset : null;
+}
+
 /** Coordinates are unmirrored source-video pixels, not CSS positions. */
 export function isUsablePoint(point: MaybePoint): point is Point {
   return point != null && Number.isFinite(point.x) && Number.isFinite(point.y)

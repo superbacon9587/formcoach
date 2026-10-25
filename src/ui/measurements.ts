@@ -25,6 +25,7 @@ export function createMeasurementsPanel() {
   const source = element.querySelector<HTMLElement>('.measurement-source')!;
   const status = element.querySelector<HTMLElement>('.measurement-status')!;
   const help = element.querySelector<HTMLElement>('.measurement-help')!;
+  const note = element.querySelector<HTMLElement>('.measurement-note')!;
   return {
     element,
     render(frame: PoseFrame | null, view: SessionView) {
@@ -36,6 +37,9 @@ export function createMeasurementsPanel() {
       help.textContent = !frame ? 'Start mock preview or the camera to see measurements.'
         : measurable ? 'Lower toward the elbow-depth target, then return to your usual straight-arm top. No bottom pause is required.'
         : 'Keep your shoulder, elbow and wrist in view. Unreliable measurements stay blank.';
+      note.textContent = view.enabledChecks.alignment
+        ? 'Angle as seen by the camera. Form feedback currently supports side-view pushups.'
+        : 'Angle as seen by the camera. Pushup depth and form are not assessed yet.';
     }
   };
 }
