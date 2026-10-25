@@ -7,7 +7,7 @@ export function createMeasurementsPanel() {
   element.setAttribute('aria-labelledby', 'measurements-title');
   element.innerHTML = `
     <div class="measurements-heading">
-      <div><span class="measurements-label">PERSON B · MEASUREMENTS</span>
+      <div><span class="measurements-label">LIVE ARM TARGETS</span>
       <h2 id="measurements-title">Arm position</h2></div>
       <span class="measurement-source">NO INPUT</span>
     </div>
@@ -19,7 +19,7 @@ export function createMeasurementsPanel() {
         <strong class="measurement-status">Waiting</strong>
         <p class="measurement-help">Start mock preview or the camera to see measurements.</p></div>
     </div>
-    <p class="measurement-note">Angle as seen by the camera. Pushup depth and form are not assessed yet.</p>`;
+    <p class="measurement-note">Side view measures your visible elbow angle and checks hip alignment. Keep the camera beside you; angles are estimates, not chest-to-floor distances.</p>`;
   const angle = element.querySelector<HTMLElement>('.measurement-angle')!;
   const side = element.querySelector<HTMLElement>('.measurement-side')!;
   const source = element.querySelector<HTMLElement>('.measurement-source')!;
@@ -31,11 +31,11 @@ export function createMeasurementsPanel() {
     render(frame: PoseFrame | null, view: SessionView) {
       const measurable = frame !== null && view.elbowDeg !== null && Number.isFinite(view.elbowDeg);
       angle.textContent = measurable ? `${Math.round(view.elbowDeg!)}°` : '—';
-      side.textContent = frame?.side ? `${frame.side === 'left' ? 'Left' : 'Right'} arm supplied by tracking` : 'Waiting for joint data';
+      side.textContent = view.coaching?.cameraView==='front' ? `Left ${view.coaching.leftElbowDeg===null?'—':Math.round(view.coaching.leftElbowDeg)+'°'} · Right ${view.coaching.rightElbowDeg===null?'—':Math.round(view.coaching.rightElbowDeg)+'°'}` : frame?.side ? `${frame.side === 'left' ? 'Left' : 'Right'} arm supplied by tracking` : 'Waiting for joint data';
       source.textContent = !frame ? 'NO INPUT' : frame.source === 'mock' ? 'SYNTHETIC INPUT' : 'CAMERA INPUT';
       status.textContent = !frame ? 'Waiting' : measurable ? 'Measurable' : 'Uncertain';
       help.textContent = !frame ? 'Start mock preview or the camera to see measurements.'
-        : measurable ? 'Shoulder, elbow and wrist are available. This is a measurement, not a form score.'
+        : measurable ? 'Lower toward the elbow-depth target, then return to your usual straight-arm top. No bottom pause is required.'
         : 'Keep your shoulder, elbow and wrist in view. Unreliable measurements stay blank.';
       note.textContent = view.enabledChecks.alignment
         ? 'Angle as seen by the camera. Form feedback currently supports side-view pushups.'

@@ -1,3 +1,38 @@
+# Current version: side-view workflow
+
+See [V4 side-view update](SIDE_VIEW_UPDATE.md). This supersedes the front-view instructions below.
+
+# V3 front-path contract
+
+Front active entry point routes to src/analysis/front-path.ts; Side routes to the
+previous angular engine. Shared src/shared/front-guide.ts generates stationary
+reference geometry without live landmarks. SessionView.coaching.fixedGuides holds
+both poses; guideLocked and measurementMode report the actual mode. Optional
+Analyzer.setGuide/lockGuide and UI actions allow explicit placement before locking.
+Front camera output exposes only shoulder/elbow/wrist image points for both sides;
+world coordinates and lower-body fields are discarded. Projected angles are debug
+measurements, not the front completion criterion. See FIXED_FRONT_ARMS.md.
+
+# Contract v2: single-computer group integration
+
+The team authorized changes across A/B/C together. New optional fields are in
+src/shared/contracts.ts and src/shared/coaching.ts. PoseFrame now carries both
+image arms and optional worldArms. Front mode requires both arms. Side mode retains
+the visible-side joints. World coordinates are model estimates in meters;
+source image coordinates remain intrinsic, unmirrored pixels.
+
+UI passes optional CoachSettings through start(mode, settings) to main; main
+creates a new analyzer per run and passes cameraView to tracking. Settings are
+locked during the set. Analyzer chooses projected 2D for synthetic frames and
+estimated 3D for camera frames when selected; it never silently falls back from
+missing camera world data to projected angles. SessionView.coaching carries both
+angles, common endpoint targets, arm/calibration progress and schematic guides.
+Visual status evaluates only the supported checks. The canvas does NOT count reps.
+Front alignment means arm synchrony, not trunk alignment. Existing frontend,
+tracking and pure-analysis boundaries still apply. See docs/GROUP_TEST.md.
+
+## Previous v1 contract (historical)
+
 # Frozen contract v1
 
 Authoritative types: src/shared/contracts.ts. Read this alongside the types.

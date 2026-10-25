@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createAnalyzer } from '../../src/analysis';
+// Historical engine tests; current app behavior is covered by the group suites.
+import { createAnalyzer } from '../../src/analysis/legacy-analyzer';
 import { hipDeviation } from '../../src/analysis/metrics';
 import type { Point, PoseFrame } from '../../src/shared/contracts';
 

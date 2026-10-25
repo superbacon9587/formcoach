@@ -30,9 +30,10 @@ jobs:
           BASE_BRANCH: ${{ github.base_ref }}
         run: |
           case "$HEAD_BRANCH" in
+            feature/group-*) role=GROUP ;;
             feature/a-*) role=A ;;
             feature/b-*) role=B ;;
             feature/c-*) role=C ;;
-            *) echo 'Use feature/a-, feature/b-, or feature/c- branch prefixes.'; exit 1 ;;
+            *) echo 'Use feature/group-, feature/a-, feature/b-, or feature/c- branch prefixes.'; exit 1 ;;
           esac
           node scripts/check-ownership.mjs "$role" "origin/$BASE_BRANCH"

@@ -1,3 +1,4 @@
+import { drawFrontDemo } from './front-demo';
 /**
  * Animated pushup demonstration (Person C) - original Canvas mannequin, side view.
  *
@@ -23,6 +24,7 @@ export interface PushupPose {
 
 export interface PushupDemo {
   readonly root: HTMLElement;
+  setView(view:'front'|'side',bottom?:number,top?:number): void;
   play(): void;
   pause(): void;
   replay(): void;
@@ -176,11 +178,11 @@ export function mountPushupDemo(container: HTMLElement): PushupDemo {
   canvas.className = 'demo-canvas';
   canvas.setAttribute('role', 'img');
   canvas.setAttribute('aria-label',
-    'Animated side view of a standard floor pushup. The body stays in one straight line from shoulders to ankles while the elbows bend and straighten.');
+    'Animated front view of a standard floor pushup. The body stays in one straight line from shoulders to ankles while the elbows bend and straighten.');
 
   const caption = document.createElement('figcaption');
   const title = document.createElement('span');
-  title.textContent = 'Pushup demonstration · side view';
+  title.textContent = 'Pushup demonstration · front view';
   const note = document.createElement('small');
   note.textContent = 'Illustration only, not a measurement';
   const playBtn = document.createElement('button');
@@ -208,11 +210,13 @@ export function mountPushupDemo(container: HTMLElement): PushupDemo {
   let cssW = 0, cssH = 0;
   let palette = readPalette(root);
   let destroyed = false;
+  let cameraView:'front'|'side'='front',bottomTarget=90,topTarget=160;
 
   const render = () => {
     if (!ctx || cssW === 0 || cssH === 0) return;
     const depth = !playing && elapsed === 0 && reduceMotion ? 0.5 : cycleDepth(elapsed / PERIOD_MS);
-    drawPose(ctx, cssW, cssH, pushupPose(depth), palette);
+    if(cameraView==='front')drawFrontDemo(ctx,cssW,cssH,depth,bottomTarget,topTarget);
+    else drawPose(ctx, cssW, cssH, pushupPose(depth), palette);
   };
 
   const resize = () => {
@@ -274,6 +278,7 @@ export function mountPushupDemo(container: HTMLElement): PushupDemo {
 
   return {
     root,
+    setView(next,bottom=90,top=160){cameraView=next;bottomTarget=bottom;topTarget=top;title.textContent=`Pushup demonstration · ${next} view`;canvas.setAttribute('aria-label',`Animated ${next} view of floor pushup arm movement.`);render();},
     play,
     pause,
     replay,
